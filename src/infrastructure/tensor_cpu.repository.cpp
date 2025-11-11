@@ -1,0 +1,62 @@
+#include "infrastructure/tensor_cpu.repository.hpp"
+#include "domain/tensor_utils.hpp"
+
+namespace cpu_tensor {
+    static void add_vertexes(void* self){
+        tensor::Tensor* tensor = (tensor::Tensor*) self;
+        tensor->weights = (float*)malloc(tensor->weights_size * sizeof(float));
+        memset(tensor->weights, 0, tensor->weights_size * sizeof(float));
+    }
+
+    static void add_weights(void* self, float* weights){
+        tensor::Tensor* tensor = (tensor::Tensor*) self;
+
+        for(size_t i = 0; i < tensor->rank; ++i){
+            tensor->weights[i] = weights[i];
+        }
+    }
+
+    static void add_weights_by_coord(void* self, size_t* coord, float weight){
+        tensor::Tensor* tensor = (tensor::Tensor*) self;
+
+        size_t idx = tensor->get_index(coord);
+
+        if(tensor_utils::valid_index(idx, tensor->weights_size))
+            tensor->weights[idx] = weight;
+    }
+
+    static float get_weight_by_coord(void* self, size_t* coord){
+        tensor::Tensor* tensor = (tensor::Tensor*) self;
+        
+        size_t idx = tensor->get_index(coord);
+        
+        if(tensor_utils::valid_index(idx, tensor->weights_size))
+            return tensor->weights[idx];
+    }
+
+    static void destroy(void* self){
+        tensor::Tensor* g = static_cast<tensor::Tensor*>(self);
+        free(g);
+    }
+
+    ITensor* create_tensor(size_t rank, size_t* dimensions_size) {
+        tensor::Tensor* tensor = static_cast<tensor::Tensor*>(malloc(sizeof(tensor::Tensor)));
+
+        if(!tensor) return nullptr;
+
+        tensor->interface = (ITensor*) malloc(sizeof(ITensor));
+
+        tensor->interface->add_vertexes              = add_vertexes;
+        tensor->interface->add_weights               = add_weights;
+        tensor->interface->add_weights_by_coord      = add_weights;
+        tensor->interface->get_weight_by_coord       = get_weight;
+        tensor->interface->destroy                   = destroy;
+
+        tensor->rank = rank;
+        tensor->set_dimensions(dimensions_size);
+        tensor->fill_stride();
+        tensor->weights_size = tensor_utils::calc_weights_size(tensor->dimensions, tensor->rank);
+
+        return reinterpret_cast<ITensor*>(tensor);
+    }
+}
