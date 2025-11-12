@@ -12,10 +12,7 @@ namespace gpu_tensor {
 
     static void add_weights(void* self, float* weights){
         tensor::Tensor* tensor = (tensor::Tensor*) self;
-
-        for(size_t i = 0; i < tensor->rank; ++i){
-            tensor->weights[i] = weights[i];
-        }
+        cudaMemcpy(tensor->weights, weights, tensor->weights_size * sizeof(float), cudaMemcpyHostToDevice);
     }
 
     static void add_vertexes(void* self) {
@@ -47,6 +44,10 @@ namespace gpu_tensor {
         return result;
     }
 
+    static void add_block(void* self, const size_t* start_coord, const size_t* block_shape, const float* weights_block) {
+
+    }
+
     static void destroy(void* self) {
         tensor::Tensor* tensor = static_cast<tensor::Tensor*>(self);
         if (tensor->weights)
@@ -54,7 +55,7 @@ namespace gpu_tensor {
         free(tensor);
     }
 
-    ITensor* create_tensor(size_t rank, size_t* dimensions_size) {
+    ITensor* create_tensor(size_t rank, size_t* shape) {
         tensor::Tensor* tensor = static_cast<tensor::Tensor*>(malloc(sizeof(tensor::Tensor)));
 
         if(!tensor) return nullptr;
@@ -65,10 +66,11 @@ namespace gpu_tensor {
         tensor->interface->get_weight_by_coord       = get_weight_by_coord;
         tensor->interface->destroy                   = destroy;
 
-        tensor->rank = rank;
-        tensor->set_dimensions(dimensions_size);
+        tensor->rank                                 = rank;
+        tensor->set_shape(shape);
         tensor->fill_stride();
-        tensor->weights_size = tensor_utils::calc_weights_size(tensor->dimensions, tensor->rank);
+        tensor->weights_size                         = tensor_utils::calc_weights_size(tensor->shape, tensor->rank);
+        tensor->interface->add_vertexes(tensor);
 
         return reinterpret_cast<ITensor*>(tensor);
     }
