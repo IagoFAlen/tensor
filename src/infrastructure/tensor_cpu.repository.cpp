@@ -1,83 +1,78 @@
 #include "infrastructure/tensor_cpu.repository.hpp"
 #include "domain/tensor_utils.hpp"
+#include <limits>
+#include <algorithm>
+
+static pthread_mutex_t tensor_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 namespace cpu_tensor {
-    static void add_vertexes(void* self){
-        tensor::Tensor* tensor = (tensor::Tensor*) self;
+    static void add_vertexes(void* self) {
+        tensor::Tensor* tensor = (tensor::Tensor*)self;
         tensor->weights = (float*)malloc(tensor->weights_size * sizeof(float));
-        memset(tensor->weights, 0, tensor->weights_size * sizeof(float));
+        tensor->offset = (unsigned long long*)malloc(sizeof(unsigned long long));
+        *tensor->offset = 0;
+        std::fill(tensor->weights, tensor->weights + tensor->weights_size, tensor->default_weight);
     }
 
-    static void add_weights(void* self, float* weights){
-        tensor::Tensor* tensor = (tensor::Tensor*) self;
+    static void add_block(void* self, float* weights_block, size_t block_size) {
+        tensor::Tensor* tensor = (tensor::Tensor*)self;
 
-        for(size_t i = 0; i < tensor->weights_size; ++i){
-            tensor->weights[i] = weights[i];
-        }
-    }
+        pthread_mutex_lock(&tensor_mutex);
 
-    static size_t* add_block(void* self, size_t* start_coord, size_t* block_shape, float* weights_block) {
-        tensor::Tensor* tensor = (tensor::Tensor*) self;
-        size_t start_idx = 0;
-        size_t offset = 0;
+        size_t contiguous_size = tensor->stride[0];
+        size_t remainder = block_size % contiguous_size;
 
-        start_idx = tensor->get_index(start_coord);
-        size_t block_size = 1;
-        
-        for(size_t i = 0; i < tensor->rank; ++i){
-            block_size *= block_shape[i];
-        }
-        
-        offset = start_idx;
-        
-        for(size_t i = start_idx; i < start_idx + block_size; ++i){
-            memcpy(&tensor->weights[start_idx], &weights_block, block_size * sizeof(float));
+        float* aligned_block = weights_block;
+        size_t padded_size = block_size;
+        if (remainder != 0) {
+            padded_size = block_size + (contiguous_size - remainder);
+            posix_memalign((void**)&aligned_block, 64, padded_size * sizeof(float));
+            memcpy(aligned_block, weights_block, block_size * sizeof(float));
+            std::fill(aligned_block + block_size, aligned_block + padded_size, tensor->default_weight);
         }
 
-        return tensor->get_coords(offset);
+        memcpy(&tensor->weights[*tensor->offset], aligned_block, padded_size * sizeof(float));
+        *tensor->offset += padded_size;
 
+        if (aligned_block != weights_block) {
+            free(aligned_block);
+        }
+
+        pthread_mutex_unlock(&tensor_mutex);
     }
 
-    static void add_weights_by_coord(void* self, size_t* coord, float weight){
-        tensor::Tensor* tensor = (tensor::Tensor*) self;
-
-        size_t idx = tensor->get_index(coord);
-
-        if(tensor_utils::valid_index(idx, tensor->weights_size))
-            tensor->weights[idx] = weight;
+    static void destroy(void* self) {
+        tensor::Tensor* tensor = (tensor::Tensor*)self;
+        if (tensor->weights) {
+            free(tensor->weights);
+        }
+        if (tensor->offset) {
+            free(tensor->offset);
+        }
+        free(tensor);
     }
 
-    static float get_weight_by_coord(void* self, size_t* coord){
-        tensor::Tensor* tensor = (tensor::Tensor*) self;
-        
-        size_t idx = tensor->get_index(coord);
-        
-        if(tensor_utils::valid_index(idx, tensor->weights_size))
-            return tensor->weights[idx];
-    }
+    ITensor* create_tensor(size_t rank, size_t* shape, float default_weight) {
+        tensor::Tensor* tensor = (tensor::Tensor*)malloc(sizeof(tensor::Tensor));
+        if (!tensor) return nullptr;
 
-    static void destroy(void* self){
-        tensor::Tensor* g = static_cast<tensor::Tensor*>(self);
-        free(g);
-    }
+        tensor->interface = (ITensor*)malloc(sizeof(ITensor));
+        if (!tensor->interface) {
+            free(tensor);
+            return nullptr;
+        }
 
-    ITensor* create_tensor(size_t rank, size_t* shape) {
-        tensor::Tensor* tensor = static_cast<tensor::Tensor*>(malloc(sizeof(tensor::Tensor)));
-
-        if(!tensor) return nullptr;
-
-        tensor->interface = (ITensor*) malloc(sizeof(ITensor));
-
-        tensor->interface->add_vertexes              = add_vertexes;
-        tensor->interface->add_weights               = add_weights;
-        tensor->interface->add_weights_by_coord      = add_weights;
-        tensor->interface->get_weight_by_coord       = get_weight;
-        tensor->interface->destroy                   = destroy;
+        tensor->interface->add_vertexes = add_vertexes;
+        tensor->interface->add_block = add_block;
+        tensor->interface->destroy = destroy;
 
         tensor->rank = rank;
         tensor->set_shape(shape);
         tensor->fill_stride();
         tensor->weights_size = tensor_utils::calc_weights_size(tensor->shape, tensor->rank);
+        tensor->default_weight = default_weight;
+
+        tensor->interface->add_vertexes(tensor);
 
         return reinterpret_cast<ITensor*>(tensor);
     }

@@ -10,7 +10,7 @@ A forma mais eficiente de inserir valores em um tensor é quando os dados são c
 
 Um bloco é contíguo se seus elementos ocupam posições consecutivas na memória (array weights). Isso ocorre em:
 - Tensores 1D (rank = 1), onde todos os elementos são naturalmente contíguos.
-- Tensores ND (rank > 1), quando o bloco cobre toda a última dimensão (ou várias dimensões internas), respeitando os strides.
+- Tensores ND (rank > 1), quando o bloco cobre toda a última dimensão (ou várias dimensões internas), respeitando os strides. Assim, com última dimensão estamos falando dos saltos que stride[0] dá. Se eu bloco de memória não preenche a dimensão completamente, o próximo particionamento será inserido num local não padronizado, ou seja, não contíguo.
 
 ### CPU
 #### Por Que 1D é um Bloco Contíguo?
@@ -144,3 +144,6 @@ Os strides das dimensões externas (e.g., stride[0] = 3) criam pulos na memória
 - Não Contíguo: Divida o bloco em segmentos contíguos (cada um cobrindo a última dimensão) e use memcpy para cada segmento, ajustando offsets com strides.
 - O uso de strides permite manipular qualquer rank dinamicamente, mapeando coordenadas ND para índices 1D com:
 idx = sum(coords[i] * stride[i])
+
+
+## Threads

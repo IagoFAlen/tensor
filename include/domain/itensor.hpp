@@ -9,9 +9,7 @@ using namespace std;
 
 typedef struct ITensor {
     void  (*add_vertexes)(void* self);
-    void  (*add_weights)(void* self, float* weight);
-    void  (*add_block)(void* self, const size_t* src, const size_t* block_shape, const float* weights_block);
-    void  (*add_weights_by_coord)(void* self, size_t* coord, float weight);
+    void  (*add_block)(void* self, float* weights_block, size_t block_size);
     float (*get_weight_by_coord)(void* self, size_t* coord);
     void  (*destroy)(void* self);
 };
