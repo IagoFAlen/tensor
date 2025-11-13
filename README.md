@@ -145,5 +145,4 @@ Os strides das dimensões externas (e.g., stride[0] = 3) criam pulos na memória
 - O uso de strides permite manipular qualquer rank dinamicamente, mapeando coordenadas ND para índices 1D com:
 idx = sum(coords[i] * stride[i])
 
-
 ## Threads

@@ -4,7 +4,7 @@
 #include <algorithm>
 
 static pthread_mutex_t tensor_mutex = PTHREAD_MUTEX_INITIALIZER;
-
+static float ALIGNMENT_SIZE_BYTES = 128;
 namespace cpu_tensor {
     static void add_vertexes(void* self) {
         tensor::Tensor* tensor = (tensor::Tensor*)self;
@@ -26,7 +26,7 @@ namespace cpu_tensor {
         size_t padded_size = block_size;
         if (remainder != 0) {
             padded_size = block_size + (contiguous_size - remainder);
-            posix_memalign((void**)&aligned_block, 64, padded_size * sizeof(float));
+            posix_memalign((void**)&aligned_block, ALIGNMENT_SIZE_BYTES, padded_size * sizeof(float));
             memcpy(aligned_block, weights_block, block_size * sizeof(float));
             std::fill(aligned_block + block_size, aligned_block + padded_size, tensor->default_weight);
         }
@@ -39,6 +39,15 @@ namespace cpu_tensor {
         }
 
         pthread_mutex_unlock(&tensor_mutex);
+    }
+
+    static float get_weight_by_coord(void* self, size_t* coord){
+        tensor::Tensor* tensor = (tensor::Tensor*) self;
+        
+        size_t idx = tensor->get_index(coord);
+        
+        if(tensor_utils::valid_index(idx, tensor->weights_size))
+            return tensor->weights[idx];
     }
 
     static void destroy(void* self) {
@@ -64,6 +73,7 @@ namespace cpu_tensor {
 
         tensor->interface->add_vertexes = add_vertexes;
         tensor->interface->add_block = add_block;
+        tensor->interface->get_weight_by_coord = get_weight_by_coord;
         tensor->interface->destroy = destroy;
 
         tensor->rank = rank;

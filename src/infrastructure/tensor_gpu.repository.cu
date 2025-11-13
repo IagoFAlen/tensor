@@ -21,6 +21,10 @@ namespace gpu_tensor {
         *result = atomicAdd(offset, increment);
     }
 
+    __global__ void kernel_get_weight(float* matrix, size_t idx, float* result) {
+        *result = matrix[idx];
+    }
+
     // Função auxiliar para alinhar o bloco
     static float* align_block(float* weights_block, size_t block_size, size_t contiguous_size, size_t* padded_size, float default_weight) {
         size_t remainder = block_size % contiguous_size;
@@ -88,6 +92,21 @@ namespace gpu_tensor {
         cudaDeviceSynchronize();
     }
 
+    static float get_weight_by_coord(void* self, size_t* coord) {
+        tensor::Tensor* tensor = static_cast<tensor::Tensor*>(self);
+        float result = 0.0f;
+        float* d_result;
+
+        size_t idx = tensor->get_index(coord);
+
+        cudaMalloc(&d_result, sizeof(float));
+        kernel_get_weight<<<1, 1>>>(tensor->weights, idx, d_result);
+        cudaMemcpy(&result, d_result, sizeof(float), cudaMemcpyDeviceToHost);
+        cudaFree(d_result);
+
+        return result;
+    }
+
     static void destroy(void* self) {
         tensor::Tensor* tensor = static_cast<tensor::Tensor*>(self);
         if (tensor->weights) {
@@ -111,6 +130,7 @@ namespace gpu_tensor {
 
         tensor->interface->add_vertexes = add_vertexes;
         tensor->interface->add_block = add_block;
+        tensor->interface->get_weight_by_coord = get_weight_by_coord;
         tensor->interface->destroy = destroy;
 
         tensor->rank = rank;
