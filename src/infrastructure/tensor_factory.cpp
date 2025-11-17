@@ -1,4 +1,3 @@
-// tensor_factory.cpp
 #include "tensor_factory.hpp"
 #include "infrastructure/tensor_cpu.repository.hpp"
 #include "infrastructure/tensor_gpu.repository.hpp"

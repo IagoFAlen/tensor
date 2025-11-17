@@ -5,12 +5,12 @@
 #include <algorithm>
 
 const float ALIGMENT_BYTES_SIZE = 128;
-
+// 65535 - MAX BLOCKS LIMITATIONS
 namespace gpu_tensor {
     // Kernel para inicialização com valor
     __global__ void kernel_init_with_default_value(float* weights, size_t size, float value) {
-        size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-        size_t stride = blockDim.x * gridDim.x;
+        size_t idx = blockIdx.x * blockDim.x + threadIdx.x; // Idx do bloco x Quantidade de threads do bloco + Idx da thread
+        size_t stride = blockDim.x * gridDim.x; // Idx do bloco x Quantidade de blocos no grid
         for (size_t i = idx; i < size; i += stride) {
             weights[i] = value;
         }
