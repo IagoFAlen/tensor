@@ -9,7 +9,7 @@
 namespace DEVICE {
     typedef struct tensor {
         float* data;
-        size_t* shape;      // o tamanho de cada dimensão, por exemplo [2, 3, 4] 2 - linhas, 3 - colunas, 4 - depth
+        size_t* shape;      // o tamanho de cada dimensão, por exemplo [2, 3, 4] -> convenção usar do mais lento ao mais rápido
         size_t* stride;     // Quantos passos preciso dar para pular de dimensão
         size_t rank;        // rank é o tamanho do vector shape
         size_t n;
@@ -32,7 +32,7 @@ namespace DEVICE {
     } TENSOR;
 
     bool validate_matrix_operation(TENSOR* A, TENSOR* B){
-        return A->columns == B->rows;
+        
     }
 
 }

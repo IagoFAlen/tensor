@@ -1,5 +1,6 @@
-#ifndef TENSOR_STATUS_H
-#define TENSOR_STATUS_H
+#pragma once
+
+#include <cstddef>
 
 namespace tensor {
     typedef enum Status {
@@ -12,5 +13,3 @@ namespace tensor {
     
     const char* status_name(Status s);    
 }
-
-#endif
