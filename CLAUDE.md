@@ -16,3 +16,7 @@ Biblioteca própria de tensores em C/C++ para CPU (`HOST`) e GPU (`DEVICE`, com 
 ## Ambiente
 
 - O `git` está instalado só no WSL. A partir do Windows, use `wsl git ...`.
+
+
+
+Nota: talvez isso esse projeto seja algo separado, não vou implementar as coisas de redes neurais por aqui, esse projeto só vai me dar a base para que eu implemente a rede neural

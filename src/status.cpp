@@ -1,7 +1,7 @@
 #include "status.hpp"
 
 
-namespace tensor {
+namespace tensor_status {
 
     static const char* const STATUS_NAMES[TENSOR_STATUS_COUNT] = {
         [TENSOR_OK]            = "OK",

@@ -5,6 +5,9 @@
 #include <cstdlib>
 #include <cstddef>
 #include <cuda.h>
+#include "status.hpp"
+
+using namespace tensor_status;
 
 namespace DEVICE {
     typedef struct tensor {
@@ -14,15 +17,23 @@ namespace DEVICE {
         size_t rank;        // rank é o tamanho do vector shape
         size_t n;
         
-        tensor(float* h_data, size_t* sh, size_t* st, size_t r): shape(sh), stride(st), rank(r) {
+        tensor(size_t* sh, size_t* st, size_t r): shape(sh), stride(st), rank(r), n(1) {
             for(int i = 0; i < rank; i++){
                 n *= shape[i];
             }
 
             cudaMalloc(&data, n * sizeof(float));
-            cudaMemcpy(data, h_data, n * sizeof(float), cudaMemcpyToDevice);
         }
 
+        Status feed(const float* h_data){
+            if(h_data == nullptr){
+                return TENSOR_BAD_PARAM;
+            }
+
+            return (cudaMemcpy(data, h_data, n * sizeof(float), cudaMemcpyToDevice) != cudaSuccess) ? TENSOR_EXEC_FAILED : TENSOR_OK;
+        
+        }
+        
         ~tensor(){
             n = 0;
             rank = 0;

@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace tensor {
+namespace tensor_status {
     typedef enum Status {
         TENSOR_OK,
         TENSOR_BAD_PARAM,

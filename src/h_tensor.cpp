@@ -1,10 +1,10 @@
 #include "h_tensor.hpp"
 #include "status.hpp"
 
-using namespace tensor;
+using namespace tensor_status;
 
 namespace HOST {
-        Status validate_matmul(TENSOR A, TENSOR B){
+        Status validate_matmul(const TENSOR* A, const TENSOR* B){
             /*
              * shape = [bloco, linha, coluna]
              *
@@ -14,16 +14,16 @@ namespace HOST {
              */
 
             // Se as colunas de A forem diferentes das linhas de B
-            if(A.shape[A.rank - 1] != B.shape[B.rank - 2]){
+            if(A->shape[A->rank - 1] != B->shape[B->rank - 2]){
                 return TENSOR_BAD_PARAM;
             }
 
             return TENSOR_OK;
         }
 
-        Status validate_batch(TENSOR A, TENSOR B){
-            for (size_t i = 0; i < A.rank - 2; i++) {
-                if (A.shape[i] != B.shape[i]) {
+        Status validate_batch(const TENSOR* A, const TENSOR* B){
+            for (size_t i = 0; i < A->rank - 2; i++) {
+                if (A->shape[i] != B->shape[i]) {
                     return TENSOR_BAD_PARAM;
                 }
             }
@@ -31,7 +31,7 @@ namespace HOST {
             return TENSOR_OK;
         }
 
-        Status validate_operations(TENSOR A, TENSOR B){
+        Status validate_operations(const TENSOR* A, const TENSOR* B){
             Status st = validate_matmul(A, B);
             if(st != TENSOR_OK) return st;
 
