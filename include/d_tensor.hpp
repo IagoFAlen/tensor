@@ -20,7 +20,7 @@ namespace DEVICE {
             }
 
             cudaMalloc(&data, n * sizeof(float));
-            cudaMemCpy(data, h_data, n * sizeof(float), cudaMemCpyToDevice);
+            cudaMemcpy(data, h_data, n * sizeof(float), cudaMemcpyToDevice);
         }
 
         ~tensor(){
@@ -31,8 +31,6 @@ namespace DEVICE {
 
     } TENSOR;
 
-    bool validate_matrix_operation(TENSOR* A, TENSOR* B){
-        
-    }
+    
 
 }
