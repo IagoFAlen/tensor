@@ -18,7 +18,7 @@ namespace DEVICE {
         for (size_t k = 0; k < K; k++) {
             sum += a_data[(row * K) + k] * b_data[(k * N) + column];   // A[row][k] · B[k][column]
         }
-        c_data[i] = sum;
+        c_data[(row * N) + column] = sum;
     }
     
     ROW * SHAPE + COLUMN;
