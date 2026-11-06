@@ -16,7 +16,7 @@ namespace DEVICE {
 
         float sum = 0.0f;
         for (size_t k = 0; k < K; k++) {
-            sum += a_data[(row * K) + k] * b_data[(N * k) + column];   // A[row][k] · B[k][column]
+            sum += a_data[(row * K) + k] * b_data[(k * N) + column];   // A[row][k] · B[k][column]
         }
         c_data[i] = sum;
     }
