@@ -16,11 +16,12 @@ namespace DEVICE {
 
         float sum = 0.0f;
         for (size_t k = 0; k < K; k++) {
-            sum += a_data[(row * K) + k] * b_data[(k * N) + column];   // A[row][k] · B[k][column]
+            sum += a_data[(row * K) + k] * b_data[(depth * M * N) + (k * N) + column];   // A[row][k] · B[k][column]
         }
-        c_data[(row * N) + column] = sum;
+        c_data[(depth * M * N) + (row * N) + column] = sum;
     }
     
+
     ROW * SHAPE + COLUMN;
     A = 	| 1 2 3 | 
             | 4 5 6 |
