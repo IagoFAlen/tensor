@@ -16,29 +16,10 @@ namespace DEVICE {
 
         float sum = 0.0f;
         for (size_t k = 0; k < K; k++) {
-            sum += a_data[(row * K) + k] * b_data[(depth * M * N) + (k * N) + column];   // A[row][k] · B[k][column]
+            sum += a_data[(row * K) + k] * b_data[(depth * K * N) + (k * N) + column];   // A[row][k] · B[depth][k][column]
         }
         c_data[(depth * M * N) + (row * N) + column] = sum;
     }
-    
-
-    ROW * SHAPE + COLUMN;
-    A = 	| 1 2 3 | 
-            | 4 5 6 |
-            | 7 8 9 |
-    
-    B =     | 1 |
-            | 2 |
-            | 3 |
-
-    ROW * SHAPE + COLUMN    
-    0 * 3 + 0 = 0
-    0 * 3 + 1 = 1
-    0 * 3 + 2 = 2
-    1 * 3 + 0 = 3
-    1 * 3 + 1 = 4
-    1 * 3 + 2 = 5
-    2 * 3 + 0 = 6
 
     Status matmul(const TENSOR* A, const TENSOR* B, TENSOR* C){
         size_t threads = 256;
