@@ -62,7 +62,7 @@ namespace DEVICE {
         size_t K = A->shape[A->rank - 1];
         size_t N = B->shape[B->rank - 1];
 
-        matmul_kernel<<<blocks, threads>>>(A->data, B->data, C->data, M, N, K);
+        matmul_kernel<<<blocks, threads>>>(A->data, B->data, C->data, M, K, N);
 
         return cudaGetLastError() == cudaSuccess ? TENSOR_OK : TENSOR_EXEC_FAILED;
     }
