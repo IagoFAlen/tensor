@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstddef>
+#include "stride.hpp"
 
 namespace HOST {
     typedef struct tensor {
@@ -13,21 +14,12 @@ namespace HOST {
         size_t  rank;   // rank é o tamanho do vector shape
         size_t  n;
 
-        tensor(size_t* sh, size_t r): shape(sh), rank(r) {
-            size_t stride_mem = 1;
-            size_t stride_count = rank - 1;
-
+        tensor(size_t* sh, size_t r): shape(sh), rank(r), n(1) {
             stride = (size_t*) malloc(rank * sizeof(size_t));
-            stride[stride_count] = 1;
+            tensor_stride::contiguous_stride(shape, rank, stride);
 
             for(size_t i = 0; i < rank; i++){
                 n *= shape[i];
-                
-                if (stride_count > 0) {
-                    stride[stride_count - 1] = shape[stride_count] * stride[stride_count];
-                    stride_count--;    
-                }
-
             }
 
             data = (float*) malloc(n * sizeof(float));

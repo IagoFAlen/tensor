@@ -11,7 +11,7 @@ As duas structs têm os mesmos campos:
 | `rank` | `size_t` | Quantidade de dimensões | `3` |
 | `shape` | `size_t*` | Tamanho de cada dimensão | `[2, 3, 4]` |
 | `stride` | `size_t*` | Quantos elementos avançar para somar 1 ao índice de cada dimensão | `[12, 4, 1]` |
-| `n` | `size_t` | Total de elementos, se calculado corretamente | `24` |
+| `n` | `size_t` | Total de elementos | `24` |
 | `data` | `float*` | Início dos valores, guardados em sequência | 24 valores `float` |
 
 ```text
@@ -140,6 +140,5 @@ O desenho mostra o caso em que `DEVICE::tensor` recebe os ponteiros de `shape` e
 
 ## Limitações atuais
 
-- **`n`:** não é inicializado em nenhuma das duas structs antes de `n *= shape[i]`, então o valor calculado e o tamanho alocado para `data` ficam indefinidos.
 - **`shape`:** as structs guardam o ponteiro recebido, sem copiar o array, então ele precisa continuar válido enquanto o tensor existir.
 - **`stride` no host:** é alocado no construtor, mas o destrutor não o libera.

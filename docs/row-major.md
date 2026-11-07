@@ -21,32 +21,22 @@ O tensor tem `2 × 3 × 4 = 24` elementos.
 
 O stride de uma dimensão é quantos elementos `float` é preciso avançar na memória para somar 1 ao índice dela.
 
-O construtor preenche `stride` de trás para frente. A última posição vale 1, e cada uma das outras é o tamanho e o stride da dimensão seguinte multiplicados:
+O construtor chama [`tensor_stride::contiguous_stride`](../include/stride.hpp), que preenche `stride` de trás para frente. A última posição vale 1, e cada uma das outras é o tamanho e o stride da dimensão seguinte multiplicados:
 
 ```cpp
-size_t stride_count = rank - 1;
-
-stride = (size_t*) malloc(rank * sizeof(size_t));
-stride[stride_count] = 1;
-
-for(size_t i = 0; i < rank; i++){
-    n *= shape[i];
-
-    if (stride_count > 0) {
-        stride[stride_count - 1] = shape[stride_count] * stride[stride_count];
-        stride_count--;
-    }
+stride[rank - 1] = 1;
+for (size_t i = rank - 1; i-- > 0; ) {
+    stride[i] = stride[i + 1] * shape[i + 1];
 }
 ```
 
 Para o shape `[2, 3, 4]`:
 
-| Passo | `stride_count` | Cálculo | Resultado |
+| Passo | `i` | Cálculo | Resultado |
 |---|---|---|---|
-| Antes do loop | 2 | Valor inicial | `stride[2] = 1` |
-| `i = 0` | 2 | `shape[2] * stride[2] = 4 * 1` | `stride[1] = 4` |
-| `i = 1` | 1 | `shape[1] * stride[1] = 3 * 4` | `stride[0] = 12` |
-| `i = 2` | 0 | Nenhum | Sem alteração |
+| Antes do loop | — | Valor inicial | `stride[2] = 1` |
+| 1ª iteração | 1 | `shape[2] * stride[2] = 4 * 1` | `stride[1] = 4` |
+| 2ª iteração | 0 | `shape[1] * stride[1] = 3 * 4` | `stride[0] = 12` |
 
 O resultado é `stride = [12, 4, 1]`:
 
@@ -101,7 +91,3 @@ for (size_t i = 0; i < 2; i++)
         for (size_t k = 0; k < 4; k++)
             // posição = i * 12 + j * 4 + k
 ```
-
-## Limitação atual do construtor
-
-`n` não é inicializado antes de `n *= shape[i]`. Assim, os strides são calculados corretamente, mas o valor de `n` e o tamanho alocado para `data` ficam indefinidos. Para o shape `[2, 3, 4]`, o valor correto de `n` seria 24.
