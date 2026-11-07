@@ -4,7 +4,7 @@
 namespace tensor_status {
 
     static const char* const STATUS_NAMES[TENSOR_STATUS_COUNT] = {
-        [TENSOR_OK]            = "OK",
+        [TENSOR_SUCCESS]       = "SUCCESS",
         [TENSOR_BAD_PARAM]     = "INVALID PARAM",
         [TENSOR_NOT_SUPPORTED] = "NOT SUPPORTED",
         [TENSOR_EXEC_FAILED]   = "EXECUTION FAILED",

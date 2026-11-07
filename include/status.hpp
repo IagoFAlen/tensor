@@ -4,7 +4,7 @@
 
 namespace tensor_status {
     typedef enum Status {
-        TENSOR_OK,
+        TENSOR_SUCCESS,
         TENSOR_BAD_PARAM,
         TENSOR_NOT_SUPPORTED,
         TENSOR_EXEC_FAILED,
