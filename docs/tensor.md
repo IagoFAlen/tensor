@@ -1,6 +1,6 @@
 # O que é cada coisa no tensor
 
-Este documento mostra o que cada campo de [`HOST::tensor`](../include/h_tensor.hpp) e [`DEVICE::tensor`](../include/d_tensor.hpp) representa, usando o shape `[2, 3, 4]` como exemplo. Para ver como os strides são calculados, leia [row-major.md](row-major.md).
+Este documento mostra o que cada campo de [`HOST::tensor`](../include/host/tensor.hpp) e [`DEVICE::tensor`](../include/device/tensor.hpp) representa, usando o shape `[2, 3, 4]` como exemplo. Para ver como os strides são calculados, leia [row-major.md](row-major.md).
 
 ## Visão geral
 

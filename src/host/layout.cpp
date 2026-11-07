@@ -1,4 +1,4 @@
-#include "h_tensor.hpp"
+#include "host/layout.hpp"
 #include "status.hpp"
 
 using namespace tensor_status;

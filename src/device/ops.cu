@@ -1,4 +1,4 @@
-#include "d_tensor.hpp"
+#include "device/ops.hpp"
 #include "status.hpp"
 
 using namespace tensor_status;
@@ -20,20 +20,20 @@ namespace DEVICE {
         // acessar a memória.
         if (depth >= C.shape[0] || row >= M || column >= N) return;
         /*
-         * Referência: a mesma soma escrita com M, K e N, válida quando os tensores
-         * são contíguos (row-major), ou seja, quando os strides valem:
-         *
-         *   A: shape [batch, M, K] -> stride [M * K, K, 1]
-         *   B: shape [batch, K, N] -> stride [K * N, N, 1]
-         *   C: shape [batch, M, N] -> stride [M * N, N, 1]
-         *
-         *   sum += A.data[(depth * M * K) + (row * K) + k]
-         *        * B.data[(depth * K * N) + (k * N) + column];
-         *
-         *   C.data[(depth * M * N) + (row * N) + column] = sum;
-         *
-         * Com stride, a conta continua certa mesmo quando o tensor não é contíguo
-         * (por exemplo, transposto ou com broadcast, em que stride[0] = 0).
+            * Referência: a mesma soma escrita com M, K e N, válida quando os tensores
+            * são contíguos (row-major), ou seja, quando os strides valem:
+            *
+            *   A: shape [batch, M, K] -> stride [M * K, K, 1]
+            *   B: shape [batch, K, N] -> stride [K * N, N, 1]
+            *   C: shape [batch, M, N] -> stride [M * N, N, 1]
+            *
+            *   sum += A.data[(depth * M * K) + (row * K) + k]
+            *        * B.data[(depth * K * N) + (k * N) + column];
+            *
+            *   C.data[(depth * M * N) + (row * N) + column] = sum;
+            *
+            * Com stride, a conta continua certa mesmo quando o tensor não é contíguo
+            * (por exemplo, transposto ou com broadcast, em que stride[0] = 0).
          */
         float sum = 0.0f;
         for (size_t k = 0; k < K; k++) {
@@ -62,6 +62,7 @@ namespace DEVICE {
         size_t threads = 256;
         size_t blocks  = ((C->shape[0] * C->shape[1] * C->shape[2]) * threads - 1) / threads; // to-do
 
+        // Precisamos criar uma função de tradução de TENSOR para TENSOR3
         size_t M = A->shape[1];
         size_t K = A->shape[2];
         size_t N = B->shape[2];

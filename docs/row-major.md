@@ -1,12 +1,12 @@
 # Row-major no `HOST::tensor`
 
-Este documento mostra como o construtor de [`HOST::tensor`](../include/h_tensor.hpp) organiza um tensor na memória, usando o shape `[2, 3, 4]` como exemplo.
+Este documento mostra como o construtor de [`HOST::tensor`](../include/host/tensor.hpp) organiza um tensor na memória, usando o shape `[2, 3, 4]` como exemplo.
 
 ## A ideia
 
 A memória é uma sequência linear, mas um tensor tem várias dimensões. Row-major é a regra que liga as duas coisas: **a última dimensão é a que varia mais rápido**, e a primeira, a que varia mais devagar.
 
-É a convenção do comentário em `h_tensor.hpp`: as dimensões vão "do mais lento ao mais rápido".
+É a convenção do comentário em `host/tensor.hpp`: as dimensões vão "do mais lento ao mais rápido".
 
 ```text
 shape = [2, 3, 4]
