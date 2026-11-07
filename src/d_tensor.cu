@@ -8,23 +8,24 @@ namespace DEVICE {
 
     }
 
-    __global__ void matmul_kernel(float* a_data, float* b_data, float* c_data, size_t M, size_t K, size_t N){
-        
+    __global__ void matmul_kernel(TENSOR3 A, TENSOR3 B, TENSOR3 C, size_t M, size_t K, size_t N){
+
         size_t row      = blockIdx.y * blockDim.y + threadIdx.y;
         size_t column   = blockIdx.x * blockDim.x + threadIdx.x;
         size_t depth    = blockIdx.z * blockDim.z + threadIdx.z;
 
         float sum = 0.0f;
         for (size_t k = 0; k < K; k++) {
-            sum += a_data[(row * K) + k] * b_data[(depth * K * N) + (k * N) + column];   // A[row][k] · B[depth][k][column]
+            sum += A.data[(depth * A.stride[0]) + (row * A.stride[1]) + (k      * A.stride[2])]     // A[depth][row][k]
+                 * B.data[(depth * B.stride[0]) + (k   * B.stride[1]) + (column * B.stride[2])];    // B[depth][k][column]
         }
-        c_data[(depth * M * N) + (row * N) + column] = sum;
+        C.data[(depth * C.stride[0]) + (row * C.stride[1]) + (column * C.stride[2])] = sum;       // C[depth][row][column]
     }
 
-    Status matmul(const TENSOR* A, const TENSOR* B, TENSOR* C){
+    Status matmul(const TENSOR3* A, const TENSOR3* B, TENSOR3* C){
         size_t threads = 256;
-        size_t blocks  = (C->n * threads - 1) / threads; // to-do
-        
+        size_t blocks  = ((C->shape[0] * C->shape[1] * C->shape[2]) * threads - 1) / threads; // to-do
+
         /*
          * Dimensões da multiplicação C = A · B, lidas das duas últimas dimensões
          * de cada tensor (row-major: shape[rank - 2] = linhas, shape[rank - 1] = colunas).
@@ -40,13 +41,13 @@ namespace DEVICE {
          * Cada thread calcula um elemento C[row][col], com row em [0, M) e col em [0, N);
          * o laço em k percorre [0, K).
          */
-        size_t M = A->shape[A->rank - 2];
-        size_t K = A->shape[A->rank - 1];
-        size_t N = B->shape[B->rank - 1];
+        size_t M = A->shape[1];
+        size_t K = A->shape[2];
+        size_t N = B->shape[2];
 
-        matmul_kernel<<<blocks, threads>>>(A->data, B->data, C->data, M, K, N);
+        matmul_kernel<<<blocks, threads>>>(*A, *B, *C, M, K, N);
 
-        return cudaGetLastError() == cudaSuccess ? TENSOR_OK : TENSOR_EXEC_FAILED;
+        return cudaGetLastError() == cudaSuccess ? TENSOR_SUCCESS : TENSOR_EXEC_FAILED;
     }
 
 }

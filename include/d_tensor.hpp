@@ -30,7 +30,7 @@ namespace DEVICE {
                 return TENSOR_BAD_PARAM;
             }
 
-            return (cudaMemcpy(data, h_data, n * sizeof(float), cudaMemcpyToDevice) != cudaSuccess) ? TENSOR_EXEC_FAILED : TENSOR_OK;
+            return (cudaMemcpy(data, h_data, n * sizeof(float), cudaMemcpyToDevice) != cudaSuccess) ? TENSOR_EXEC_FAILED : TENSOR_SUCCESS;
         
         }
         
@@ -42,6 +42,11 @@ namespace DEVICE {
 
     } TENSOR;
 
-    
+    // Tensor em 3 dimensões: [batch, linhas, colunas]
+    typedef struct tensor3 {
+        float* data;
+        size_t shape[3];
+        size_t stride[3];
+    } TENSOR3;
 
 }
