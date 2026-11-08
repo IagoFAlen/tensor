@@ -116,58 +116,66 @@ A principal diferença entre as duas structs é onde `data` fica e de onde vem `
 
 | Campo | `HOST::tensor` | `DEVICE::tensor` |
 |---|---|---|
-| `data` | Alocado na RAM com `malloc`, no `alloc()` | Alocado na GPU com `cudaMalloc`, no `alloc()` |
+| `data` | Alocado na RAM com `malloc`, no `alloc_data()` | Alocado na GPU com `cudaMalloc`, no `alloc_data()` |
 | Valores | Não preenche `data` | `feed` e `host_to_device` copiam do host para a GPU; `device_to_host` copia de volta |
-| `shape` | Recebe o ponteiro no construtor | Recebe o ponteiro no construtor |
-| `stride` | Calcula no `alloc()` | Recebe o ponteiro no construtor |
+| `shape` | Copiado no `alloc_shape()` | Copiado no `alloc_shape()` |
+| `stride` | Calculado no `alloc_data()` | Copiado no `alloc_stride()` |
 
 ```text
           RAM                                 GPU
 
- HOST::tensor                          
- ├─ data ───► [ valores ]                     
- ├─ shape ──► [ 2, 3, 4 ]                     
- └─ stride ─► [ 12, 4, 1 ]                    
-                  ▲                           
-                  │ ponteiros recebidos       
- DEVICE::tensor   │ no construtor             
- ├─ shape ────────┤                           
- ├─ stride ───────┘                           
+ HOST::tensor
+ ├─ data ───► [ valores ]
+ ├─ shape ──► [ 2, 3, 4 ]
+ └─ stride ─► [ 12, 4, 1 ]
+                   │ alloc_shape e alloc_stride copiam os valores
+                   ▼
+ DEVICE::tensor
+ ├─ shape ──► [ 2, 3, 4 ]     cópia própria
+ ├─ stride ─► [ 12, 4, 1 ]    cópia própria
  └─ data ─────────────────────────────► [ valores copiados ]
 ```
 
-O desenho mostra o caso em que `DEVICE::tensor` recebe os ponteiros de `shape` e `stride` de um `HOST::tensor`, o que depende de quem chama o construtor. Em qualquer caso, a própria struct `DEVICE::tensor` e esses dois arrays ficam na RAM, e só `data` fica na GPU.
+O desenho mostra o caso em que `DEVICE::tensor` é montado com o `shape` e o `stride` de um `HOST::tensor`, como em `d.alloc_shape(h.shape)` e `d.alloc_stride(h.stride)`. Os dois copiam os valores para arrays do próprio tensor, então `d` continua válido mesmo depois que `h` é destruído. A struct `DEVICE::tensor` e os arrays `shape` e `stride` ficam na RAM, e só `data` fica na GPU.
 
 ## Ciclo de vida
 
-O construtor só descreve o tensor (`shape`, `rank`, `n`) e não aloca nada, porque um construtor não consegue devolver `Status`. A memória vem do `alloc()`:
+O construtor só guarda o `rank` e não aloca nada, porque um construtor não consegue devolver `Status`. Toda memória vem dos `alloc_*`, cada um com o seu `Status`:
 
 ```cpp
 size_t shape[]  = {2, 3, 4};
 size_t stride[] = {12, 4, 1};
 
-DEVICE::TENSOR t(shape, stride, 3);   // data == nullptr
-Status s = t.alloc();                 // TENSOR_ALLOC_FAILED se o cudaMalloc falhar
+DEVICE::TENSOR t(3);                  // só o rank: shape, stride e data == nullptr
+Status s = t.alloc_shape(shape);      // copia o shape e calcula n
+s = t.alloc_stride(stride);           // copia o stride
+s = t.alloc_data();                   // n floats na GPU
 s = t.feed(&h);                       // HOST::TENSOR -> GPU, conferindo shape e stride
 // ... operações ...
 s = t.device_to_host(h_result);       // GPU -> host; espera os kernels terminarem antes
 ```
 
+No `HOST::TENSOR` não existe `alloc_stride`: o `alloc_data()` calcula o stride contíguo a partir do shape.
+
 | Método | Devolve, além de `TENSOR_SUCCESS` |
 |---|---|
-| `alloc()` | `TENSOR_ALLOC_FAILED` (device) ou `TENSOR_HOST_ALLOC_FAILED` (host) |
+| `alloc_shape(sh)` | `TENSOR_SHAPE_NULL_PARAM`, `TENSOR_SHAPE_ALREADY_ALLOCATED`, `TENSOR_SHAPE_ALLOC_FAILED` |
+| `alloc_stride(st)` (device) | `TENSOR_STRIDE_NULL_PARAM`, `TENSOR_STRIDE_ALREADY_ALLOCATED`, `TENSOR_STRIDE_ALLOC_FAILED` |
+| `alloc_data()` | `TENSOR_DATA_SHAPE_NOT_ALLOCATED`, `TENSOR_ALLOC_FAILED` (device) ou `TENSOR_HOST_ALLOC_FAILED` (host) |
 | `feed(host_tensor)` | `TENSOR_FEED_NOT_ALLOCATED`, `TENSOR_FEED_NULL_DATA`, `TENSOR_FEED_SHAPE_MISMATCH`, `TENSOR_FEED_STRIDE_MISMATCH` e, da cópia, `TENSOR_HOST_TO_DEVICE_COPY_FAILED` |
 | `host_to_device(h_data)` | `TENSOR_HOST_TO_DEVICE_NOT_ALLOCATED`, `TENSOR_HOST_TO_DEVICE_NULL_DATA`, `TENSOR_HOST_TO_DEVICE_COPY_FAILED` |
 | `device_to_host(h_data)` | `TENSOR_DEVICE_TO_HOST_NOT_ALLOCATED`, `TENSOR_DEVICE_TO_HOST_NULL_DATA`, `TENSOR_EXEC_FAILED`, `TENSOR_DEVICE_TO_HOST_COPY_FAILED` |
 
 O `host_to_device(const float*)` confia que o buffer tem `n` floats no layout do tensor da GPU. O `feed(const HOST::TENSOR*)` confere isso antes de copiar: mesmo rank, mesmo shape e mesmo stride. O stride precisa bater porque a cópia é byte a byte. Como o `HOST::TENSOR` é sempre contíguo, um tensor da GPU com stride transposto recusa o feed. Para trabalhar com a transposta, faça o feed no tensor contíguo e use `transpose` no `TENSOR3`.
-Chamar `alloc()` de novo num tensor já alocado não aloca outra vez. O destrutor libera o que o `alloc()` alocou.
+
+
+O `alloc_shape` e o `alloc_stride` copiam os valores com `malloc`, do tamanho exato do `rank`. Eles só podem ser chamados uma vez: de novo, devolvem `..._ALREADY_ALLOCATED`. O `alloc_data()` precisa do shape antes, porque é dele que sai `n`. Chamar `alloc_data()` de novo não aloca outra vez. O destrutor libera `data`, `shape` e `stride`.
 
 O lançamento de um kernel é assíncrono: `mat_mul` e `hadamard_mul` voltam antes de o kernel terminar. Um erro *dentro* do kernel só aparece numa sincronização, que é o que o `device_to_host` faz antes de copiar. Para conferir sem copiar, use `DEVICE::synchronize()`. Os dois devolvem `TENSOR_EXEC_FAILED` nesse caso.
 
 ## Cópia proibida
 
-O `TENSOR` é dono de `data` (e, no host, de `stride`): o destrutor libera essa memória. Se ele pudesse ser copiado, as duas cópias liberariam a mesma memória no fim do escopo (*double free*). Por isso a cópia é erro de compilação:
+O `TENSOR` é dono de `data`, `shape` e `stride`: o destrutor libera essa memória. Se ele pudesse ser copiado, as duas cópias liberariam a mesma memória no fim do escopo (*double free*). Por isso a cópia é erro de compilação:
 
 ```cpp
 DEVICE::TENSOR b = a;     // erro: use of deleted function
@@ -175,7 +183,3 @@ void f(DEVICE::TENSOR t); // passar por valor também não compila
 ```
 
 Passe o `TENSOR` por ponteiro ou referência. Para ver a mesma memória de outro jeito (por exemplo, transposta), converta para `TENSOR3` com `to_tensor3` e use `transpose`: o `TENSOR3` não é dono de nada, então copiá-lo é seguro.
-
-## Limitações atuais
-
-- **`shape` e `stride` emprestados:** as structs guardam o ponteiro recebido, sem copiar o array, então ele precisa continuar válido enquanto o tensor existir.

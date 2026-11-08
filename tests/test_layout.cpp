@@ -8,7 +8,9 @@ static bool eq3(const size_t* a, size_t x, size_t y, size_t z){ return a[0] == x
 
 // Converte e confere shape3 e stride3.
 static void case_ok(const char* name, size_t* sh, size_t* st, size_t r, const size_t want_sh[3], const size_t want_st[3]){
-    TENSOR t(sh, st, r);
+    TENSOR t(r);
+    t.alloc_shape(sh);
+    t.alloc_stride(st);
     TENSOR3 t3 = {};
     Status s = to_tensor3(&t, &t3);
     CHECK(name, s == TENSOR_SUCCESS && eq3(t3.shape, want_sh[0], want_sh[1], want_sh[2]) && eq3(t3.stride, want_st[0], want_st[1], want_st[2]));
@@ -37,20 +39,27 @@ int main(){
     }
     {
         size_t sh1[] = {4}, st1[] = {1};
-        TENSOR t(sh1, st1, 1);
+        TENSOR t(1);
+        t.alloc_shape(sh1);
+        t.alloc_stride(st1);
         TENSOR3 t3 = {};
         CHECK_STATUS("rank 1", to_tensor3(&t, &t3), TENSOR_RANK_TOO_SMALL);
     }
     {
         size_t shP[] = {2, 3, 2, 2}, stP[] = {4, 8, 2, 1};
-        TENSOR t(shP, stP, 4);
+        TENSOR t(4);
+        t.alloc_shape(shP);
+        t.alloc_stride(stP);
         TENSOR3 t3 = {};
         CHECK_STATUS("batch permutado, stride [4, 8, 2, 1]", to_tensor3(&t, &t3), TENSOR_BATCH_NOT_CONTIGUOUS);
         CHECK("  out intacto depois da falha", eq3(t3.shape, 0, 0, 0) && eq3(t3.stride, 0, 0, 0));
     }
     {
         size_t sh[] = {2, 3}, st[] = {3, 1};
-        TENSOR t(sh, st, 2), sem_stride(sh, nullptr, 2);
+        TENSOR t(2), sem_stride(2);
+        t.alloc_shape(sh);
+        t.alloc_stride(st);
+        sem_stride.alloc_shape(sh);              // sem alloc_stride: stride fica nulo
         TENSOR3 t3 = {};
         CHECK_STATUS("in nulo", to_tensor3(nullptr, &t3), TENSOR_LAYOUT_NULL_PARAM);
         CHECK_STATUS("out nulo", to_tensor3(&t, nullptr), TENSOR_LAYOUT_NULL_PARAM);

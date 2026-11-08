@@ -39,7 +39,7 @@ O `hadamard_mul` é o molde: mesmo grid, mesmo `batch_fits`, broadcast por strid
 
 ## 6. Mais tarde
 
-- [ ] **`shape` e `stride` internos no `TENSOR`** (`MAX_RANK` fixo, por exemplo 8). Hoje são ponteiros emprestados do chamador: se o array dele sair de escopo antes do tensor, o tensor aponta para lixo. Só vira necessário quando precisar de operações N-D no `TENSOR` (permutar batch, `reshape` geral).
+- [x] **`shape` e `stride` próprios no `TENSOR`**: `alloc_shape` e `alloc_stride` copiam os dois (com `malloc`, do tamanho do `rank`), cada um com o seu `Status`. Antes eram ponteiros emprestados no construtor, e um `DEVICE::TENSOR d(h.shape, h.stride, ...)` apontava para memória liberada depois que `h` era destruído (achado no csv2tensor).
 - [ ] **Limite do eixo z**: `gridDim.z` vai até 65535. Batch maior que isso faz o lançamento falhar (`TENSOR_LAUNCH_FAILED`).
 - [ ] **Desempenho da `mat_mul`**: a versão atual lê cada elemento da memória global K vezes. A versão com *tiling* em shared memory é bem mais rápida.
 
@@ -49,5 +49,5 @@ O `hadamard_mul` é o molde: mesmo grid, mesmo `batch_fits`, broadcast por strid
 - [x] `TENSOR3` e `to_tensor3` (rank ≥ 2, batch fundido, checagem de contiguidade).
 - [x] `transpose` no `TENSOR3` (sem copiar dados).
 - [x] `mat_mul` e `hadamard_mul` com grid 3D (`dim3`), strides e broadcast por stride 0.
-- [x] Um status por verificação, inclusive ponteiros nulos e `alloc()`.
+- [x] Um status por verificação, inclusive ponteiros nulos e os `alloc_*`.
 - [x] Cópia de `TENSOR` proibida (`= delete`), sem double free.

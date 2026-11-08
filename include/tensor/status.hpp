@@ -14,6 +14,15 @@ namespace tensor_status {
         TENSOR_NOT_SUPPORTED,
         TENSOR_EXEC_FAILED,             // synchronize, device_to_host: um kernel lançado antes falhou durante a execução
 
+        // Tensor (device/tensor.hpp, host/tensor.hpp)
+        TENSOR_SHAPE_NULL_PARAM,            // alloc_shape: sh == nullptr
+        TENSOR_SHAPE_ALREADY_ALLOCATED,     // alloc_shape: o shape já foi alocado
+        TENSOR_SHAPE_ALLOC_FAILED,          // alloc_shape: malloc falhou
+        TENSOR_STRIDE_NULL_PARAM,           // alloc_stride: st == nullptr
+        TENSOR_STRIDE_ALREADY_ALLOCATED,    // alloc_stride: o stride já foi alocado
+        TENSOR_STRIDE_ALLOC_FAILED,         // alloc_stride: malloc falhou
+        TENSOR_DATA_SHAPE_NOT_ALLOCATED,    // alloc_data: alloc_shape não foi chamado (n desconhecido)
+
         // Tensor (device/tensor.hpp)
         TENSOR_ALLOC_FAILED,            // alloc: cudaMalloc falhou
         TENSOR_FEED_NOT_ALLOCATED,              // feed: data == nullptr (alloc não foi chamado ou falhou)

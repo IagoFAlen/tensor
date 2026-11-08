@@ -1,6 +1,6 @@
 # Row-major no `HOST::tensor`
 
-Este documento mostra como o `alloc()` de [`HOST::tensor`](../include/tensor/host/tensor.hpp) organiza um tensor na memória, usando o shape `[2, 3, 4]` como exemplo.
+Este documento mostra como o `alloc_data()` de [`HOST::tensor`](../include/tensor/host/tensor.hpp) organiza um tensor na memória, usando o shape `[2, 3, 4]` como exemplo.
 
 ## A ideia
 
@@ -21,7 +21,7 @@ O tensor tem `2 × 3 × 4 = 24` elementos.
 
 O stride de uma dimensão é quantos elementos `float` é preciso avançar na memória para somar 1 ao índice dela.
 
-O `alloc()` chama [`tensor_stride::contiguous_stride`](../include/tensor/stride.hpp), que preenche `stride` de trás para frente. A última posição vale 1, e cada uma das outras é o tamanho e o stride da dimensão seguinte multiplicados:
+O `alloc_data()` chama [`tensor_stride::contiguous_stride`](../include/tensor/stride.hpp), que preenche `stride` de trás para frente. A última posição vale 1, e cada uma das outras é o tamanho e o stride da dimensão seguinte multiplicados:
 
 ```cpp
 stride[rank - 1] = 1;

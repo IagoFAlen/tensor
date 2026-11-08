@@ -9,7 +9,7 @@ O design segue o espírito do cuDNN, que serve só de referência: descritor de 
 ## Modelo
 
 - **Row-major**: `shape` vai da dimensão mais lenta para a mais rápida; `stride` é medido em elementos (`[2, 3, 4]` → `[12, 4, 1]`).
-- **`HOST::TENSOR`** e **`DEVICE::TENSOR`** são donos da memória e não podem ser copiados. O construtor só descreve o tensor; a memória vem do `alloc()`.
+- **`HOST::TENSOR`** e **`DEVICE::TENSOR`** são donos da memória e não podem ser copiados. O construtor só recebe o `rank`; a memória vem de `alloc_shape`, `alloc_stride` e `alloc_data`, cada um devolvendo um `Status`.
 - **`DEVICE::TENSOR3`** é uma view `[batch, linhas, colunas]` de um `DEVICE::TENSOR` de rank ≥ 2, sem dono e sem cópia. As operações recebem `TENSOR3`. Rank maior que 3 tem as dimensões de batch fundidas: `[2, 4, 3, 4]` → `[8, 3, 4]`.
 - **Broadcast** por stride 0 no batch: `[1, M, N]` com `stride[0] = 0` vale para todo o batch.
 - **Erros**: toda função devolve um `Status`, um por verificação (`TENSOR_MATMUL_K_MISMATCH`, `TENSOR_FEED_SHAPE_MISMATCH`...). `status_name()` dá o texto.
@@ -36,8 +36,10 @@ int main(){
                  0, 1,
                  1, 1};
 
-    DEVICE::TENSOR A(sh_a, st_a, 2), B(sh_b, st_b, 2), C(sh_c, st_c, 2);
-    A.alloc(); B.alloc(); C.alloc();
+    DEVICE::TENSOR A(2), B(2), C(2);       // rank 2
+    A.alloc_shape(sh_a); A.alloc_stride(st_a); A.alloc_data();
+    B.alloc_shape(sh_b); B.alloc_stride(st_b); B.alloc_data();
+    C.alloc_shape(sh_c); C.alloc_stride(st_c); C.alloc_data();
     A.host_to_device(a);
     B.host_to_device(b);
 
@@ -58,7 +60,7 @@ int main(){
 }
 ```
 
-O exemplo só confere o status da `mat_mul`; num código de verdade, confira o de cada chamada. `shape` e `stride` são emprestados: os arrays precisam viver tanto quanto o tensor.
+O exemplo só confere o status da `mat_mul`; num código de verdade, confira o de cada chamada. `alloc_shape` e `alloc_stride` copiam os valores, então os arrays originais podem sair de escopo depois.
 
 ## Build e testes
 

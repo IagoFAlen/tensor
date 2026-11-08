@@ -15,6 +15,14 @@ namespace tensor_status {
             case TENSOR_NOT_SUPPORTED:           return "NOT SUPPORTED";
             case TENSOR_EXEC_FAILED:             return "EXECUTION FAILED";
 
+            case TENSOR_SHAPE_NULL_PARAM:         return "ALLOC SHAPE: NULL PARAM";
+            case TENSOR_SHAPE_ALREADY_ALLOCATED:  return "ALLOC SHAPE: ALREADY ALLOCATED";
+            case TENSOR_SHAPE_ALLOC_FAILED:       return "ALLOC SHAPE: ALLOCATION FAILED";
+            case TENSOR_STRIDE_NULL_PARAM:        return "ALLOC STRIDE: NULL PARAM";
+            case TENSOR_STRIDE_ALREADY_ALLOCATED: return "ALLOC STRIDE: ALREADY ALLOCATED";
+            case TENSOR_STRIDE_ALLOC_FAILED:      return "ALLOC STRIDE: ALLOCATION FAILED";
+            case TENSOR_DATA_SHAPE_NOT_ALLOCATED: return "ALLOC DATA: SHAPE NOT ALLOCATED";
+
             case TENSOR_ALLOC_FAILED:            return "ALLOC: DEVICE ALLOCATION FAILED";
             case TENSOR_FEED_NOT_ALLOCATED:      return "FEED: DEVICE TENSOR NOT ALLOCATED";
             case TENSOR_FEED_NULL_DATA:          return "FEED: NULL OR UNALLOCATED HOST TENSOR";

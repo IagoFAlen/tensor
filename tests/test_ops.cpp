@@ -11,28 +11,24 @@
 
 using namespace DEVICE;
 
-// shape e stride precisam viver enquanto o TENSOR existir: o TENSOR só guarda os ponteiros.
-struct Dims {
-    size_t sh[8] = {}, st[8] = {}, r = 0;
-    Dims(std::initializer_list<size_t> shape, std::initializer_list<size_t> stride){
-        for (size_t v : shape)  sh[r++] = v;
-        size_t i = 0;
-        for (size_t v : stride) st[i++] = v;
-    }
-};
-
 // Um tensor de teste: os valores no host (h), a cópia na GPU (dev) e a visão 3D (t3).
-struct Tensor : Dims {
+struct Tensor {
     TENSOR dev;
     std::vector<float> h;
     TENSOR3 t3 = {};
     bool ready = false;
 
     Tensor(std::initializer_list<size_t> shape, std::initializer_list<size_t> stride, int seed)
-        : Dims(shape, stride), dev(sh, st, r), h(dev.n) {
+        : dev(shape.size()) {
+        std::vector<size_t> sh(shape), st(stride);      // o TENSOR copia: podem sumir depois
+        ready = dev.alloc_shape(sh.data()) == TENSOR_SUCCESS && dev.alloc_stride(st.data()) == TENSOR_SUCCESS;
+
+        h.resize(dev.n);
         for (size_t i = 0; i < h.size(); i++)
             h[i] = seed == 0 ? 0.0f : (float)((i * seed) % 11) - 5.0f;
-        ready = dev.alloc() == TENSOR_SUCCESS && dev.host_to_device(h.data()) == TENSOR_SUCCESS && to_tensor3(&dev, &t3) == TENSOR_SUCCESS;
+
+        ready = ready && dev.alloc_data() == TENSOR_SUCCESS && dev.host_to_device(h.data()) == TENSOR_SUCCESS
+                      && to_tensor3(&dev, &t3) == TENSOR_SUCCESS;
     }
 
     // Valor lógico [d][r][c] visto por v (que pode ser t3 ou uma transposta dele), lido da cópia no host.

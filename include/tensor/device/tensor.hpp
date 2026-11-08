@@ -18,14 +18,55 @@ namespace DEVICE {
         size_t rank;        // rank é o tamanho do vector shape
         size_t n;
         
-        // O construtor só descreve o tensor; a memória vem do alloc(), que pode devolver Status.
-        tensor(size_t* sh, size_t* st, size_t r): data(nullptr), shape(sh), stride(st), rank(r), n(1) {
+        /*
+         * O construtor só guarda o rank; toda memória vem dos alloc_*, que devolvem Status:
+         *
+         *     DEVICE::TENSOR t(3);
+         *     t.alloc_shape(shape);     // copia shape (rank posições) e calcula n
+         *     t.alloc_stride(stride);   // copia stride
+         *     t.alloc_data();           // n floats na GPU
+         *
+         * shape e stride são COPIADOS: o tensor não depende de os arrays de quem chamou continuarem
+         * existindo (ex.: um t montado com h.shape e h.stride segue válido depois que h é destruído).
+         */
+        explicit tensor(size_t r): data(nullptr), shape(nullptr), stride(nullptr), rank(r), n(1) {}
+
+        // malloc(0) pode devolver nullptr, o que pareceria falha: aloca pelo menos 1 posição.
+        size_t dims_bytes() const { return (rank > 0 ? rank : 1) * sizeof(size_t); }
+
+        Status alloc_shape(const size_t* sh){
+            if(sh == nullptr)     return TENSOR_SHAPE_NULL_PARAM;
+            if(shape != nullptr)  return TENSOR_SHAPE_ALREADY_ALLOCATED;
+
+            shape = (size_t*) malloc(dims_bytes());
+            if(shape == nullptr)  return TENSOR_SHAPE_ALLOC_FAILED;
+
+            n = 1;
             for(size_t i = 0; i < rank; i++){
-                n *= shape[i];
+                shape[i] = sh[i];
+                n *= sh[i];
             }
+
+            return TENSOR_SUCCESS;
         }
 
-        Status alloc(){
+        Status alloc_stride(const size_t* st){
+            if(st == nullptr)     return TENSOR_STRIDE_NULL_PARAM;
+            if(stride != nullptr) return TENSOR_STRIDE_ALREADY_ALLOCATED;
+
+            stride = (size_t*) malloc(dims_bytes());
+            if(stride == nullptr) return TENSOR_STRIDE_ALLOC_FAILED;
+
+            for(size_t i = 0; i < rank; i++){
+                stride[i] = st[i];
+            }
+
+            return TENSOR_SUCCESS;
+        }
+
+        // Precisa do shape antes: é ele que diz quantos floats (n) alocar.
+        Status alloc_data(){
+            if(shape == nullptr) return TENSOR_DATA_SHAPE_NOT_ALLOCATED;
             if(data != nullptr) return TENSOR_SUCCESS;     // já alocado
 
             if(cudaMalloc(&data, n * sizeof(float)) != cudaSuccess){
@@ -106,9 +147,11 @@ namespace DEVICE {
             n = 0;
             rank = 0;
             cudaFree(data);
+            free(shape);
+            free(stride);
         };
 
-        // O TENSOR é dono de data: uma cópia liberaria a mesma memória duas vezes (double free).
+        // O TENSOR é dono de data, shape e stride: uma cópia liberaria a mesma memória duas vezes (double free).
         // Para ver a mesma memória de outro jeito (ex.: transposta), use um TENSOR3.
         tensor(const tensor&) = delete;
         tensor& operator=(const tensor&) = delete;
