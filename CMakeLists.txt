@@ -35,25 +35,25 @@ set(TENSOR_SOURCES
 if(TENSOR_EMULATE)
     # Os .cu viram C++: layout.cu não tem kernel e compila como está; em ops.cu,
     # kernel<<<grid, block>>>(args) é trocado por LAUNCH(kernel, grid, block, args).
-    file(READ ${CMAKE_SOURCE_DIR}/src/device/ops.cu OPS_SOURCE)
+    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/device/ops.cu OPS_SOURCE)
     string(REGEX REPLACE "([A-Za-z_][A-Za-z0-9_]*)<<<([^,]+), *([^>]+)>>>\\("
                          "LAUNCH(\\1, \\2, \\3, " OPS_SOURCE "${OPS_SOURCE}")
-    file(WRITE ${CMAKE_BINARY_DIR}/emulate/ops.cpp "${OPS_SOURCE}")
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/device/ops.cu)
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/emulate/ops.cpp "${OPS_SOURCE}")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/device/ops.cu)
 
     set_source_files_properties(src/device/layout.cu PROPERTIES LANGUAGE CXX)
-    list(APPEND TENSOR_SOURCES src/device/layout.cu ${CMAKE_BINARY_DIR}/emulate/ops.cpp)
+    list(APPEND TENSOR_SOURCES src/device/layout.cu ${CMAKE_CURRENT_BINARY_DIR}/emulate/ops.cpp)
 else()
     list(APPEND TENSOR_SOURCES src/device/layout.cu src/device/ops.cu)
 endif()
 
 add_library(tensor ${TENSOR_SOURCES})
 target_include_directories(tensor
-    PUBLIC  ${CMAKE_SOURCE_DIR}/include
-    PRIVATE ${CMAKE_SOURCE_DIR})        # config/device.hpp
+    PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})        # config/device.hpp
 
 if(TENSOR_EMULATE)
-    target_include_directories(tensor PUBLIC ${CMAKE_SOURCE_DIR}/tests/emulate)   # cuda_runtime.h emulado
+    target_include_directories(tensor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/emulate)   # cuda_runtime.h emulado
     target_compile_definitions(tensor PUBLIC TENSOR_EMULATE)
 else()
     target_link_libraries(tensor PUBLIC CUDA::cudart)
