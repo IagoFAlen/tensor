@@ -13,9 +13,15 @@ namespace HOST {
              * C: shape = [2, 2, 4], stride = [ 8, 4, 1]
              */
 
+            if(A == nullptr || B == nullptr || A->shape == nullptr || B->shape == nullptr)
+                return TENSOR_MATMUL_NULL_PARAM;
+
+            // shape[rank - 2] com rank < 2 daria a volta no size_t
+            if(A->rank < 2 || B->rank < 2) return TENSOR_RANK_TOO_SMALL;
+
             // Se as colunas de A forem diferentes das linhas de B
             if(A->shape[A->rank - 1] != B->shape[B->rank - 2]){
-                return TENSOR_BAD_PARAM;
+                return TENSOR_MATMUL_K_MISMATCH;
             }
 
             return TENSOR_SUCCESS;

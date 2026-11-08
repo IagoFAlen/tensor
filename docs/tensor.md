@@ -116,10 +116,10 @@ A principal diferença entre as duas structs é onde `data` fica e de onde vem `
 
 | Campo | `HOST::tensor` | `DEVICE::tensor` |
 |---|---|---|
-| `data` | Alocado na RAM com `malloc` | Alocado na GPU com `cudaMalloc` |
-| Valores iniciais | Não preenche `data` | Copia de `h_data` para a GPU |
+| `data` | Alocado na RAM com `malloc`, no `alloc()` | Alocado na GPU com `cudaMalloc`, no `alloc()` |
+| Valores | Não preenche `data` | `feed` copia do host para a GPU; `fetch` copia de volta |
 | `shape` | Recebe o ponteiro no construtor | Recebe o ponteiro no construtor |
-| `stride` | Calcula no construtor | Recebe o ponteiro no construtor |
+| `stride` | Calcula no `alloc()` | Recebe o ponteiro no construtor |
 
 ```text
           RAM                                 GPU
@@ -138,7 +138,42 @@ A principal diferença entre as duas structs é onde `data` fica e de onde vem `
 
 O desenho mostra o caso em que `DEVICE::tensor` recebe os ponteiros de `shape` e `stride` de um `HOST::tensor`, o que depende de quem chama o construtor. Em qualquer caso, a própria struct `DEVICE::tensor` e esses dois arrays ficam na RAM, e só `data` fica na GPU.
 
+## Ciclo de vida
+
+O construtor só descreve o tensor (`shape`, `rank`, `n`) e não aloca nada, porque um construtor não consegue devolver `Status`. A memória vem do `alloc()`:
+
+```cpp
+size_t shape[]  = {2, 3, 4};
+size_t stride[] = {12, 4, 1};
+
+DEVICE::TENSOR t(shape, stride, 3);   // data == nullptr
+Status s = t.alloc();                 // TENSOR_ALLOC_FAILED se o cudaMalloc falhar
+s = t.feed(h_data);                   // host -> GPU
+// ... operações ...
+s = t.fetch(h_result);                // GPU -> host; espera os kernels terminarem antes
+```
+
+| Método | Devolve, além de `TENSOR_SUCCESS` |
+|---|---|
+| `alloc()` | `TENSOR_ALLOC_FAILED` (device) ou `TENSOR_HOST_ALLOC_FAILED` (host) |
+| `feed(h_data)` | `TENSOR_FEED_NOT_ALLOCATED`, `TENSOR_FEED_NULL_DATA`, `TENSOR_COPY_FAILED` |
+| `fetch(h_data)` | `TENSOR_FETCH_NOT_ALLOCATED`, `TENSOR_FETCH_NULL_DATA`, `TENSOR_EXEC_FAILED`, `TENSOR_FETCH_COPY_FAILED` |
+
+Chamar `alloc()` de novo num tensor já alocado não aloca outra vez. O destrutor libera o que o `alloc()` alocou.
+
+O lançamento de um kernel é assíncrono: `mat_mul` e `hadamard_mul` voltam antes de o kernel terminar. Um erro *dentro* do kernel só aparece numa sincronização, que é o que o `fetch` faz antes de copiar. Para conferir sem copiar, use `DEVICE::synchronize()`. Os dois devolvem `TENSOR_EXEC_FAILED` nesse caso.
+
+## Cópia proibida
+
+O `TENSOR` é dono de `data` (e, no host, de `stride`): o destrutor libera essa memória. Se ele pudesse ser copiado, as duas cópias liberariam a mesma memória no fim do escopo (*double free*). Por isso a cópia é erro de compilação:
+
+```cpp
+DEVICE::TENSOR b = a;     // erro: use of deleted function
+void f(DEVICE::TENSOR t); // passar por valor também não compila
+```
+
+Passe o `TENSOR` por ponteiro ou referência. Para ver a mesma memória de outro jeito (por exemplo, transposta), converta para `TENSOR3` com `to_tensor3` e use `transpose`: o `TENSOR3` não é dono de nada, então copiá-lo é seguro.
+
 ## Limitações atuais
 
-- **`shape`:** as structs guardam o ponteiro recebido, sem copiar o array, então ele precisa continuar válido enquanto o tensor existir.
-- **`stride` no host:** é alocado no construtor, mas o destrutor não o libera.
+- **`shape` e `stride` emprestados:** as structs guardam o ponteiro recebido, sem copiar o array, então ele precisa continuar válido enquanto o tensor existir.
