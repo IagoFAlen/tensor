@@ -12,16 +12,20 @@ namespace tensor_status {
         // Genéricos
         TENSOR_BAD_PARAM,
         TENSOR_NOT_SUPPORTED,
-        TENSOR_EXEC_FAILED,             // synchronize, fetch: um kernel lançado antes falhou durante a execução
+        TENSOR_EXEC_FAILED,             // synchronize, device_to_host: um kernel lançado antes falhou durante a execução
 
         // Tensor (device/tensor.hpp)
         TENSOR_ALLOC_FAILED,            // alloc: cudaMalloc falhou
-        TENSOR_FEED_NOT_ALLOCATED,      // feed: data == nullptr (alloc não foi chamado ou falhou)
-        TENSOR_FEED_NULL_DATA,          // feed: h_data == nullptr
-        TENSOR_COPY_FAILED,             // feed: cudaMemcpy falhou
-        TENSOR_FETCH_NOT_ALLOCATED,     // fetch: data == nullptr (alloc não foi chamado ou falhou)
-        TENSOR_FETCH_NULL_DATA,         // fetch: h_data == nullptr
-        TENSOR_FETCH_COPY_FAILED,       // fetch: cudaMemcpy falhou
+        TENSOR_FEED_NOT_ALLOCATED,              // feed: data == nullptr (alloc não foi chamado ou falhou)
+        TENSOR_FEED_NULL_DATA,                  // feed: HOST::TENSOR nulo ou sem alloc
+        TENSOR_FEED_SHAPE_MISMATCH,             // feed: rank ou shape diferente do tensor da GPU
+        TENSOR_FEED_STRIDE_MISMATCH,            // feed: stride diferente (a cópia é byte a byte, o layout precisa ser o mesmo)
+        TENSOR_HOST_TO_DEVICE_NOT_ALLOCATED,    // host_to_device: data == nullptr (alloc não foi chamado ou falhou)
+        TENSOR_HOST_TO_DEVICE_NULL_DATA,        // host_to_device: h_data == nullptr
+        TENSOR_HOST_TO_DEVICE_COPY_FAILED,      // host_to_device (também via feed): cudaMemcpy falhou
+        TENSOR_DEVICE_TO_HOST_NOT_ALLOCATED,    // device_to_host: data == nullptr (alloc não foi chamado ou falhou)
+        TENSOR_DEVICE_TO_HOST_NULL_DATA,        // device_to_host: h_data == nullptr
+        TENSOR_DEVICE_TO_HOST_COPY_FAILED,      // device_to_host: cudaMemcpy falhou
 
         // Tensor (host/tensor.hpp)
         TENSOR_HOST_ALLOC_FAILED,       // alloc: malloc de data ou de stride falhou

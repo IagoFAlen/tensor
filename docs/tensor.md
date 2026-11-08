@@ -117,7 +117,7 @@ A principal diferença entre as duas structs é onde `data` fica e de onde vem `
 | Campo | `HOST::tensor` | `DEVICE::tensor` |
 |---|---|---|
 | `data` | Alocado na RAM com `malloc`, no `alloc()` | Alocado na GPU com `cudaMalloc`, no `alloc()` |
-| Valores | Não preenche `data` | `feed` copia do host para a GPU; `fetch` copia de volta |
+| Valores | Não preenche `data` | `feed` e `host_to_device` copiam do host para a GPU; `device_to_host` copia de volta |
 | `shape` | Recebe o ponteiro no construtor | Recebe o ponteiro no construtor |
 | `stride` | Calcula no `alloc()` | Recebe o ponteiro no construtor |
 
@@ -148,20 +148,22 @@ size_t stride[] = {12, 4, 1};
 
 DEVICE::TENSOR t(shape, stride, 3);   // data == nullptr
 Status s = t.alloc();                 // TENSOR_ALLOC_FAILED se o cudaMalloc falhar
-s = t.feed(h_data);                   // host -> GPU
+s = t.feed(&h);                       // HOST::TENSOR -> GPU, conferindo shape e stride
 // ... operações ...
-s = t.fetch(h_result);                // GPU -> host; espera os kernels terminarem antes
+s = t.device_to_host(h_result);       // GPU -> host; espera os kernels terminarem antes
 ```
 
 | Método | Devolve, além de `TENSOR_SUCCESS` |
 |---|---|
 | `alloc()` | `TENSOR_ALLOC_FAILED` (device) ou `TENSOR_HOST_ALLOC_FAILED` (host) |
-| `feed(h_data)` | `TENSOR_FEED_NOT_ALLOCATED`, `TENSOR_FEED_NULL_DATA`, `TENSOR_COPY_FAILED` |
-| `fetch(h_data)` | `TENSOR_FETCH_NOT_ALLOCATED`, `TENSOR_FETCH_NULL_DATA`, `TENSOR_EXEC_FAILED`, `TENSOR_FETCH_COPY_FAILED` |
+| `feed(host_tensor)` | `TENSOR_FEED_NOT_ALLOCATED`, `TENSOR_FEED_NULL_DATA`, `TENSOR_FEED_SHAPE_MISMATCH`, `TENSOR_FEED_STRIDE_MISMATCH` e, da cópia, `TENSOR_HOST_TO_DEVICE_COPY_FAILED` |
+| `host_to_device(h_data)` | `TENSOR_HOST_TO_DEVICE_NOT_ALLOCATED`, `TENSOR_HOST_TO_DEVICE_NULL_DATA`, `TENSOR_HOST_TO_DEVICE_COPY_FAILED` |
+| `device_to_host(h_data)` | `TENSOR_DEVICE_TO_HOST_NOT_ALLOCATED`, `TENSOR_DEVICE_TO_HOST_NULL_DATA`, `TENSOR_EXEC_FAILED`, `TENSOR_DEVICE_TO_HOST_COPY_FAILED` |
 
+O `host_to_device(const float*)` confia que o buffer tem `n` floats no layout do tensor da GPU. O `feed(const HOST::TENSOR*)` confere isso antes de copiar: mesmo rank, mesmo shape e mesmo stride. O stride precisa bater porque a cópia é byte a byte. Como o `HOST::TENSOR` é sempre contíguo, um tensor da GPU com stride transposto recusa o feed. Para trabalhar com a transposta, faça o feed no tensor contíguo e use `transpose` no `TENSOR3`.
 Chamar `alloc()` de novo num tensor já alocado não aloca outra vez. O destrutor libera o que o `alloc()` alocou.
 
-O lançamento de um kernel é assíncrono: `mat_mul` e `hadamard_mul` voltam antes de o kernel terminar. Um erro *dentro* do kernel só aparece numa sincronização, que é o que o `fetch` faz antes de copiar. Para conferir sem copiar, use `DEVICE::synchronize()`. Os dois devolvem `TENSOR_EXEC_FAILED` nesse caso.
+O lançamento de um kernel é assíncrono: `mat_mul` e `hadamard_mul` voltam antes de o kernel terminar. Um erro *dentro* do kernel só aparece numa sincronização, que é o que o `device_to_host` faz antes de copiar. Para conferir sem copiar, use `DEVICE::synchronize()`. Os dois devolvem `TENSOR_EXEC_FAILED` nesse caso.
 
 ## Cópia proibida
 

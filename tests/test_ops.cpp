@@ -1,6 +1,6 @@
 /*
- * mat_mul e hadamard_mul de ponta a ponta: TENSOR -> alloc -> feed -> to_tensor3
- * (-> transpose) -> operação -> fetch, conferindo contra a mesma conta feita na CPU.
+ * mat_mul e hadamard_mul de ponta a ponta: TENSOR -> alloc -> host_to_device -> to_tensor3
+ * (-> transpose) -> operação -> device_to_host, conferindo contra a mesma conta feita na CPU.
  * Os valores são inteiros pequenos, então a soma em float é exata e dá para comparar com ==.
  */
 #include <initializer_list>
@@ -32,7 +32,7 @@ struct Tensor : Dims {
         : Dims(shape, stride), dev(sh, st, r), h(dev.n) {
         for (size_t i = 0; i < h.size(); i++)
             h[i] = seed == 0 ? 0.0f : (float)((i * seed) % 11) - 5.0f;
-        ready = dev.alloc() == TENSOR_SUCCESS && dev.feed(h.data()) == TENSOR_SUCCESS && to_tensor3(&dev, &t3) == TENSOR_SUCCESS;
+        ready = dev.alloc() == TENSOR_SUCCESS && dev.host_to_device(h.data()) == TENSOR_SUCCESS && to_tensor3(&dev, &t3) == TENSOR_SUCCESS;
     }
 
     // Valor lógico [d][r][c] visto por v (que pode ser t3 ou uma transposta dele), lido da cópia no host.
@@ -40,9 +40,9 @@ struct Tensor : Dims {
         return h[d * v.stride[0] + row * v.stride[1] + col * v.stride[2]];
     }
 
-    std::vector<float> fetched(Status* s) const {
+    std::vector<float> to_host(Status* s) const {
         std::vector<float> out(dev.n);
-        *s = dev.fetch(out.data());
+        *s = dev.device_to_host(out.data());
         return out;
     }
 };
@@ -56,7 +56,7 @@ static void matmul_case(const char* name, const Tensor& A, const TENSOR3& a, con
     if (!A.ready || !B.ready || !C.ready) { CHECK(name, false); return; }
     Status s = mat_mul(&a, &b, &C.t3);
     Status f;
-    std::vector<float> out = C.fetched(&f);
+    std::vector<float> out = C.to_host(&f);
     bool ok = s == TENSOR_SUCCESS && f == TENSOR_SUCCESS;
     for (size_t d = 0; ok && d < C.t3.shape[0]; d++)
         for (size_t row = 0; row < C.t3.shape[1]; row++)
@@ -73,7 +73,7 @@ static void hadamard_case(const char* name, const Tensor& A, const TENSOR3& a, c
     if (!A.ready || !B.ready || !C.ready) { CHECK(name, false); return; }
     Status s = hadamard_mul(&a, &b, &C.t3);
     Status f;
-    std::vector<float> out = C.fetched(&f);
+    std::vector<float> out = C.to_host(&f);
     bool ok = s == TENSOR_SUCCESS && f == TENSOR_SUCCESS;
     for (size_t d = 0; ok && d < C.t3.shape[0]; d++)
         for (size_t row = 0; row < C.t3.shape[1]; row++)

@@ -1,4 +1,4 @@
-// DEVICE::TENSOR (alloc, feed, fetch), HOST::TENSOR, validate_matmul e status_name.
+// DEVICE::TENSOR (alloc, feed, host_to_device, device_to_host), HOST::TENSOR, validate_matmul e status_name.
 #include <string>
 #include <type_traits>
 #include "check.hpp"
@@ -22,18 +22,55 @@ int main(){
         float h[6] = {1, 2, 3, 4, 5, 6}, back[6] = {};
         DEVICE::TENSOR t(sh, st, 2);
 
-        CHECK_STATUS("feed antes do alloc", t.feed(h), TENSOR_FEED_NOT_ALLOCATED);
-        CHECK_STATUS("fetch antes do alloc", t.fetch(back), TENSOR_FETCH_NOT_ALLOCATED);
+        CHECK_STATUS("host_to_device antes do alloc", t.host_to_device(h), TENSOR_HOST_TO_DEVICE_NOT_ALLOCATED);
+        CHECK_STATUS("device_to_host antes do alloc", t.device_to_host(back), TENSOR_DEVICE_TO_HOST_NOT_ALLOCATED);
         CHECK_STATUS("alloc", t.alloc(), TENSOR_SUCCESS);
         CHECK_STATUS("alloc de novo (nao realoca)", t.alloc(), TENSOR_SUCCESS);
-        CHECK_STATUS("feed com h_data nulo", t.feed(nullptr), TENSOR_FEED_NULL_DATA);
-        CHECK_STATUS("fetch com h_data nulo", t.fetch(nullptr), TENSOR_FETCH_NULL_DATA);
-        CHECK_STATUS("feed", t.feed(h), TENSOR_SUCCESS);
-        CHECK_STATUS("fetch", t.fetch(back), TENSOR_SUCCESS);
+        CHECK_STATUS("host_to_device com h_data nulo", t.host_to_device(nullptr), TENSOR_HOST_TO_DEVICE_NULL_DATA);
+        CHECK_STATUS("device_to_host com h_data nulo", t.device_to_host(nullptr), TENSOR_DEVICE_TO_HOST_NULL_DATA);
+        CHECK_STATUS("host_to_device", t.host_to_device(h), TENSOR_SUCCESS);
+        CHECK_STATUS("device_to_host", t.device_to_host(back), TENSOR_SUCCESS);
 
         bool same = true;
         for (int i = 0; i < 6; i++) if (back[i] != h[i]) same = false;
-        CHECK("fetch devolve o que o feed mandou", same);
+        CHECK("device_to_host devolve o que o host_to_device mandou", same);
+    }
+
+    SECTION("DEVICE::TENSOR feed");
+    {
+        size_t sh[] = {2, 3, 4}, st[] = {12, 4, 1};
+        HOST::TENSOR h(sh, 3);
+        DEVICE::TENSOR d(sh, st, 3);
+
+        CHECK_STATUS("GPU sem alloc", d.feed(&h), TENSOR_FEED_NOT_ALLOCATED);
+        d.alloc();
+        CHECK_STATUS("HOST::TENSOR nulo", d.feed(nullptr), TENSOR_FEED_NULL_DATA);
+        CHECK_STATUS("HOST::TENSOR sem alloc", d.feed(&h), TENSOR_FEED_NULL_DATA);
+
+        h.alloc();
+        for (size_t i = 0; i < h.n; i++) h.data[i] = (float)i * 0.5f;
+        CHECK_STATUS("mesmo shape e stride", d.feed(&h), TENSOR_SUCCESS);
+
+        float back[24] = {};
+        d.device_to_host(back);
+        bool same = true;
+        for (size_t i = 0; i < 24; i++) if (back[i] != h.data[i]) same = false;
+        CHECK("device_to_host devolve os dados do HOST::TENSOR", same);
+
+        size_t sh_r2[] = {6, 4}, st_r2[] = {4, 1};
+        DEVICE::TENSOR r2(sh_r2, st_r2, 2);
+        r2.alloc();
+        CHECK_STATUS("rank diferente ([2, 3, 4] -> [6, 4])", r2.feed(&h), TENSOR_FEED_SHAPE_MISMATCH);
+
+        size_t sh_o[] = {2, 4, 3}, st_o[] = {12, 3, 1};
+        DEVICE::TENSOR other(sh_o, st_o, 3);
+        other.alloc();
+        CHECK_STATUS("mesmo n, shape diferente ([2, 3, 4] -> [2, 4, 3])", other.feed(&h), TENSOR_FEED_SHAPE_MISMATCH);
+
+        size_t st_t[] = {12, 1, 3};
+        DEVICE::TENSOR transposed(sh, st_t, 3);
+        transposed.alloc();
+        CHECK_STATUS("mesmo shape, stride transposto [12, 1, 3]", transposed.feed(&h), TENSOR_FEED_STRIDE_MISMATCH);
     }
 
 #ifdef TENSOR_EMULATE
@@ -46,7 +83,7 @@ int main(){
         emulate_pending_kernel_error() = cudaErrorUnknown;
         CHECK_STATUS("synchronize", DEVICE::synchronize(), TENSOR_EXEC_FAILED);
         emulate_pending_kernel_error() = cudaErrorUnknown;
-        CHECK_STATUS("fetch sincroniza antes de copiar", t.fetch(back), TENSOR_EXEC_FAILED);
+        CHECK_STATUS("device_to_host sincroniza antes de copiar", t.device_to_host(back), TENSOR_EXEC_FAILED);
     }
 #endif
 

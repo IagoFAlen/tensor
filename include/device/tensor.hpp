@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cuda_runtime.h>
 #include "status.hpp"
+#include "host/tensor.hpp"
 
 using namespace tensor_status;
 
@@ -35,17 +36,49 @@ namespace DEVICE {
             return TENSOR_SUCCESS;
         }
 
-        Status feed(const float* h_data){
+        // Copia n floats de h_data para a GPU, sem conferir nada: o buffer precisa estar no layout do tensor.
+        Status host_to_device(const float* h_data){
+            if(data == nullptr){
+                return TENSOR_HOST_TO_DEVICE_NOT_ALLOCATED;
+            }
+
+            if(h_data == nullptr){
+                return TENSOR_HOST_TO_DEVICE_NULL_DATA;
+            }
+
+            return (cudaMemcpy(data, h_data, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) ? TENSOR_HOST_TO_DEVICE_COPY_FAILED : TENSOR_SUCCESS;
+
+        }
+
+        /*
+         * Copia um HOST::TENSOR para a GPU, conferindo antes que os dois descrevem o mesmo tensor.
+         * O host_to_device confia que o buffer tem n floats no layout certo; o feed confere:
+         *   - mesmo rank e shape  -> mesma quantidade de elementos
+         *   - mesmo stride        -> a cópia é byte a byte, então o layout precisa ser igual
+         *                            (o HOST::TENSOR é sempre contíguo)
+         */
+        Status feed(const HOST::TENSOR* h){
             if(data == nullptr){
                 return TENSOR_FEED_NOT_ALLOCATED;
             }
 
-            if(h_data == nullptr){
+            if(h == nullptr || h->data == nullptr || h->stride == nullptr){
                 return TENSOR_FEED_NULL_DATA;
             }
 
-            return (cudaMemcpy(data, h_data, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) ? TENSOR_COPY_FAILED : TENSOR_SUCCESS;
+            if(h->rank != rank){
+                return TENSOR_FEED_SHAPE_MISMATCH;
+            }
 
+            for(size_t i = 0; i < rank; i++){
+                if(h->shape[i] != shape[i]) return TENSOR_FEED_SHAPE_MISMATCH;
+            }
+
+            for(size_t i = 0; i < rank; i++){
+                if(h->stride[i] != stride[i]) return TENSOR_FEED_STRIDE_MISMATCH;
+            }
+
+            return host_to_device(h->data);
         }
 
         /*
@@ -53,20 +86,20 @@ namespace DEVICE {
          * Antes da cópia, espera os kernels terminarem: um erro dentro de um kernel
          * só aparece numa sincronização, e aí volta como TENSOR_EXEC_FAILED.
          */
-        Status fetch(float* h_data) const {
+        Status device_to_host(float* h_data) const {
             if(data == nullptr){
-                return TENSOR_FETCH_NOT_ALLOCATED;
+                return TENSOR_DEVICE_TO_HOST_NOT_ALLOCATED;
             }
 
             if(h_data == nullptr){
-                return TENSOR_FETCH_NULL_DATA;
+                return TENSOR_DEVICE_TO_HOST_NULL_DATA;
             }
 
             if(cudaDeviceSynchronize() != cudaSuccess){
                 return TENSOR_EXEC_FAILED;
             }
 
-            return (cudaMemcpy(h_data, data, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) ? TENSOR_FETCH_COPY_FAILED : TENSOR_SUCCESS;
+            return (cudaMemcpy(h_data, data, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) ? TENSOR_DEVICE_TO_HOST_COPY_FAILED : TENSOR_SUCCESS;
         }
         
         ~tensor(){

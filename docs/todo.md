@@ -4,8 +4,8 @@ Ordem sugerida: de cima para baixo. As seções 4 a 6 vêm conforme a rede neura
 
 ## 1. Ler o resultado e pegar erros
 
-- [x] **`fetch` no `DEVICE::TENSOR`**: copia `data` da GPU para o host.
-- [x] **Erro durante a execução do kernel**: `fetch` sincroniza antes de copiar, e `DEVICE::synchronize()` sincroniza sem copiar. Os dois devolvem `TENSOR_EXEC_FAILED`.
+- [x] **`device_to_host` no `DEVICE::TENSOR`**: copia `data` da GPU para o host.
+- [x] **Erro durante a execução do kernel**: `device_to_host` sincroniza antes de copiar, e `DEVICE::synchronize()` sincroniza sem copiar. Os dois devolvem `TENSOR_EXEC_FAILED`.
 
 ## 2. Build e teste na GPU
 

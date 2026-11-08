@@ -46,12 +46,12 @@ cmake -S . -B build-emu -DTENSOR_EMULATE=ON -DCMAKE_CXX_FLAGS="-fsanitize=addres
 
 ## Os testes
 
-Os testes usam só a API pública (`alloc`, `feed`, `fetch`, `to_tensor3`, `transpose`, `mat_mul`, `hadamard_mul`), então o mesmo código roda nos dois modos.
+Os testes usam só a API pública (`alloc`, `feed`, `host_to_device`, `device_to_host`, `to_tensor3`, `transpose`, `mat_mul`, `hadamard_mul`), então o mesmo código roda nos dois modos.
 
 | Arquivo | O que testa |
 |---|---|
 | [`test_layout.cpp`](../tests/test_layout.cpp) | `to_tensor3` (ranks 2 a 5, transposta, batch permutado) e `transpose` |
 | [`test_ops.cpp`](../tests/test_ops.cpp) | `mat_mul` e `hadamard_mul` de ponta a ponta, conferidos contra a conta na CPU, e as validações |
-| [`test_tensor.cpp`](../tests/test_tensor.cpp) | `alloc`, `feed`, `fetch`, cópia proibida, `HOST::TENSOR`, `validate_matmul` e `status_name` |
+| [`test_tensor.cpp`](../tests/test_tensor.cpp) | `alloc`, `feed`, `host_to_device`, `device_to_host`, cópia proibida, `HOST::TENSOR`, `validate_matmul` e `status_name` |
 
 O caso de erro dentro de um kernel (`TENSOR_EXEC_FAILED`) só é testado na emulação, que consegue simular a falha.
