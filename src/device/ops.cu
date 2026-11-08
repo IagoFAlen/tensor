@@ -1,5 +1,5 @@
-#include "device/ops.hpp"
-#include "status.hpp"
+#include "tensor/device/ops.hpp"
+#include "tensor/status.hpp"
 #include "config/device.hpp"
 
 using namespace tensor_status;

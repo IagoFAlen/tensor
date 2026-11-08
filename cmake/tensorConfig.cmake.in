@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+# libtensor tem objetos CUDA e liga no cudart: quem usa precisa do CUDA Toolkit.
+include(CMakeFindDependencyMacro)
+find_dependency(CUDAToolkit)
+
+include("${CMAKE_CURRENT_LIST_DIR}/tensorTargets.cmake")
+check_required_components(tensor)

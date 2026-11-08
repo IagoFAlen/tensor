@@ -2,10 +2,10 @@
 #include <string>
 #include <type_traits>
 #include "check.hpp"
-#include "device/tensor.hpp"
-#include "device/ops.hpp"
-#include "host/tensor.hpp"
-#include "host/layout.hpp"
+#include "tensor/device/tensor.hpp"
+#include "tensor/device/ops.hpp"
+#include "tensor/host/tensor.hpp"
+#include "tensor/host/layout.hpp"
 
 // Copiar um TENSOR liberaria a mesma memória duas vezes: precisa ser erro de compilação.
 static_assert(!std::is_copy_constructible<DEVICE::TENSOR>::value, "DEVICE::TENSOR nao pode ser copiavel");

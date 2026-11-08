@@ -23,6 +23,35 @@ Compila `src/` como a biblioteca `tensor`, com os `.cu` passando pelo `nvcc`, pa
 
 O `nvcc` usa o compilador do Visual Studio (MSVC), e o CMake gera uma solução com várias configurações. Por isso, o build e os testes precisam de `--config Release` e `-C Release`.
 
+## Instalação no sistema
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+sudo cmake --install build
+```
+
+Instala em `/usr/local` (para outro lugar: `cmake --install build --prefix /caminho`, sem `sudo` se a pasta for sua):
+
+| Caminho | Conteúdo |
+|---|---|
+| `include/tensor/` | headers: `#include "tensor/host/tensor.hpp"`, `"tensor/device/ops.hpp"`... |
+| `lib/libtensor.a` | a biblioteca, compilada para a arquitetura escolhida no `cmake -S` (`native` por padrão) |
+| `lib/cmake/tensor/` | pacote do CMake |
+
+Os headers ficam numa pasta `tensor/` para não colidir com outros `status.hpp`, `host/` e `device/` no sistema. O `config/device.hpp` é interno e não é instalado.
+
+Num projeto CMake, não precisa ligar o CUDA como linguagem; o pacote já traz o `cudart`:
+
+```cmake
+find_package(tensor 0.1 REQUIRED)
+target_link_libraries(app PRIVATE tensor::tensor)
+```
+
+Sem CMake: `g++ -std=c++17 -I/usr/local/cuda/include app.cpp -ltensor -lcudart`.
+
+O build emulado (`TENSOR_EMULATE=ON`) não tem regras de instalação: ele troca o `cuda_runtime.h` e só serve para os testes.
+
 ## Sem GPU (emulação na CPU)
 
 ```sh

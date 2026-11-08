@@ -1,12 +1,12 @@
 # Row-major no `HOST::tensor`
 
-Este documento mostra como o `alloc()` de [`HOST::tensor`](../include/host/tensor.hpp) organiza um tensor na memória, usando o shape `[2, 3, 4]` como exemplo.
+Este documento mostra como o `alloc()` de [`HOST::tensor`](../include/tensor/host/tensor.hpp) organiza um tensor na memória, usando o shape `[2, 3, 4]` como exemplo.
 
 ## A ideia
 
 A memória é uma sequência linear, mas um tensor tem várias dimensões. Row-major é a regra que liga as duas coisas: **a última dimensão é a que varia mais rápido**, e a primeira, a que varia mais devagar.
 
-É a convenção do comentário em `host/tensor.hpp`: as dimensões vão "do mais lento ao mais rápido".
+É a convenção do comentário em `tensor/host/tensor.hpp`: as dimensões vão "do mais lento ao mais rápido".
 
 ```text
 shape = [2, 3, 4]
@@ -21,7 +21,7 @@ O tensor tem `2 × 3 × 4 = 24` elementos.
 
 O stride de uma dimensão é quantos elementos `float` é preciso avançar na memória para somar 1 ao índice dela.
 
-O `alloc()` chama [`tensor_stride::contiguous_stride`](../include/stride.hpp), que preenche `stride` de trás para frente. A última posição vale 1, e cada uma das outras é o tamanho e o stride da dimensão seguinte multiplicados:
+O `alloc()` chama [`tensor_stride::contiguous_stride`](../include/tensor/stride.hpp), que preenche `stride` de trás para frente. A última posição vale 1, e cada uma das outras é o tamanho e o stride da dimensão seguinte multiplicados:
 
 ```cpp
 stride[rank - 1] = 1;

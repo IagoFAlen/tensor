@@ -4,8 +4,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstddef>
-#include "stride.hpp"
-#include "status.hpp"
+#include "tensor/stride.hpp"
+#include "tensor/status.hpp"
 
 using namespace tensor_status;
 

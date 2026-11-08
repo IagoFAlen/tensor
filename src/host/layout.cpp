@@ -1,5 +1,5 @@
-#include "host/layout.hpp"
-#include "status.hpp"
+#include "tensor/host/layout.hpp"
+#include "tensor/status.hpp"
 
 using namespace tensor_status;
 

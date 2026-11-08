@@ -1,4 +1,4 @@
-#include "stride.hpp"
+#include "tensor/stride.hpp"
 
 namespace tensor_stride {
     void contiguous_stride(const size_t* shape, size_t rank, size_t* stride){

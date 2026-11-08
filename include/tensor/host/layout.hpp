@@ -1,7 +1,7 @@
 #pragma once
 
-#include "host/tensor.hpp"
-#include "status.hpp"
+#include "tensor/host/tensor.hpp"
+#include "tensor/status.hpp"
 
 using namespace tensor_status;
 

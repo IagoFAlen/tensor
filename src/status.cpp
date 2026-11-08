@@ -1,4 +1,4 @@
-#include "status.hpp"
+#include "tensor/status.hpp"
 
 
 namespace tensor_status {

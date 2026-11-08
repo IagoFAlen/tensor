@@ -5,8 +5,8 @@
 #include <cstdlib>
 #include <cstddef>
 #include <cuda_runtime.h>
-#include "status.hpp"
-#include "host/tensor.hpp"
+#include "tensor/status.hpp"
+#include "tensor/host/tensor.hpp"
 
 using namespace tensor_status;
 

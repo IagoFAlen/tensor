@@ -1,7 +1,7 @@
 #pragma once
 
-#include "device/tensor.hpp"
-#include "status.hpp"
+#include "tensor/device/tensor.hpp"
+#include "tensor/status.hpp"
 
 using namespace tensor_status;
 

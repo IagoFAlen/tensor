@@ -1,6 +1,6 @@
 // to_tensor3 e transpose: só mexem em shape e stride, então nenhum caso aqui toca a memória da GPU.
 #include "check.hpp"
-#include "device/layout.hpp"
+#include "tensor/device/layout.hpp"
 
 using namespace DEVICE;
 

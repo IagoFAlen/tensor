@@ -6,8 +6,8 @@
 #include <initializer_list>
 #include <vector>
 #include "check.hpp"
-#include "device/layout.hpp"
-#include "device/ops.hpp"
+#include "tensor/device/layout.hpp"
+#include "tensor/device/ops.hpp"
 
 using namespace DEVICE;
 

@@ -2,7 +2,7 @@
 #pragma once
 
 #include <cstdio>
-#include "status.hpp"
+#include "tensor/status.hpp"
 
 using namespace tensor_status;
 
